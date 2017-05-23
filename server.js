@@ -9,7 +9,7 @@ const PORT = process.env.PORT || 3000;
 const session = require('express-session');
 const passport = require('passport');
 const mongo = require('mongodb').MongoClient;
-const localStrategy = require('passport-local');
+const LocalStrategy = require('passport-local');
 
 app.set('view engine', 'pug');
 
@@ -30,6 +30,11 @@ app.route('/')
     //res.sendFile(process.cwd() + '/views/index.html');
     res.render('pug/index.pug', {title: 'Hello', message: "Please login"});
   });
+
+app.route('/profile')
+  .get(ensureAuthenticated, (req,res) => {
+    res.render('pug/profile');                  
+  });  
 
 mongo.connect(process.env.DATABASE, (err, db) => {
     if(err) {
@@ -65,5 +70,15 @@ mongo.connect(process.env.DATABASE, (err, db) => {
         app.listen(PORT, () => {
           console.log("Listening on port " + PORT);
         });
+       
 }});
+
+
+//function defenitions
+function ensureAuthenticated(req, res, next) {
+  if (req.isAuthenticated()) {
+      return next();
+  }
+  res.redirect('/');
+};
 
