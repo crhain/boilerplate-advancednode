@@ -8,7 +8,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const session = require('express-session');
 const passport = require('passport');
-const mongo = require('mongodb');
+const mongo = require('mongodb').MongoClient;
 
 app.set('view engine', 'pug');
 
@@ -30,6 +30,28 @@ app.route('/')
     res.render('pug/index.pug', {title: 'Hello', message: "Please login"});
   });
 
-app.listen(PORT, () => {
-  console.log("Listening on port " + PORT);
-});
+mongo.connect(process.env.DATABASE, (err, db) => {
+    if(err) {
+        console.log('Database error: ' + err);
+    } else {
+        console.log('Successful database connection');
+
+        //serialization and app.listen
+        passport.serializeUser((user, done) => {
+          done(null, user._id);
+        }); 
+
+        passport.deserializeUser((id, done) => {
+                db.collection('users').findOne(
+                    {_id: new ObjectID(id)},
+                    (err, doc) => {
+                        done(null, doc);
+                    }
+                );
+            }); 
+
+        app.listen(PORT, () => {
+          console.log("Listening on port " + PORT);
+        });
+}});
+
