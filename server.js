@@ -2,7 +2,7 @@
 
 const express     = require('express');
 const bodyParser  = require('body-parser');
-const fccTesting  = require('./freeCodeCamp/fcctesting.js');
+//const fccTesting  = require('./freeCodeCamp/fcctesting.js');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -13,8 +13,8 @@ const LocalStrategy = require('passport-local');
 
 app.set('view engine', 'pug');
 
-fccTesting(app); //For FCC testing purposes
-app.use('/public', express.static(process.cwd() + '/public'));
+//fccTesting(app); //For FCC testing purposes
+app.use('/public', express.static('/public'));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(session({
@@ -25,28 +25,7 @@ app.use(session({
 app.use(passport.initialize());
 app.use(passport.session());
 
-app.route('/')
-  .get((req, res) => {
-    //res.sendFile(process.cwd() + '/views/index.html');
-    res.render('pug/index.pug', {title: 'Hello', message: "Please login", showLogin: true});
-  });
 
-app.route('/profile')
-  .get(ensureAuthenticated, (req,res) => {
-    res.render('pug/profile', {username: req.user.username});                  
-  });  
-
-app.route('/logout')
-  .get((req, res) => {
-      req.logout();
-      res.redirect('/');
-  });
-
-app.use((req, res, next) => {
-  res.status(404)
-    .type('text')
-    .send('Not Found');
-});  
 
 mongo.connect(process.env.DATABASE, (err, db) => {
     if(err) {
@@ -72,25 +51,83 @@ mongo.connect(process.env.DATABASE, (err, db) => {
 
         passport.deserializeUser((id, done) => {
                 db.collection('users').findOne(
-                    {_id: new ObjectID(id)},
+                    {_id: id},     
                     (err, doc) => {
                         done(null, doc);
                     }
                 );
             }); 
+        app.route('/')
+        .get((req, res) => {
+          //res.sendFile(process.cwd() + '/views/index.html');
+          res.render('pug/index.pug', {title: 'Hello', message: "Please login", showRegistration: true});
+        });
 
+        app.route('/register')
+          .post((req, res, next) => {
+              db.collection('users').findOne({ username: req.body.username }, function (err, user) {
+                  if(err) {
+                      next(err);
+                  } else if (user) {
+                      res.redirect('/');
+                  } else {
+                      db.collection('users').insertOne(
+                        {username: req.body.username,
+                        password: req.body.password},
+                        (err, doc) => {
+                            if(err) {
+                                console.log('rerouting because of ERROR!');
+                                res.redirect('/');
+                            } else {
+                                console.log('succesfully added user to db');
+                                next(null, user);
+                            }
+                        }
+                      )
+                  }
+              })},
+            passport.authenticate('local', { failureRedirect: '/' }),
+            (req, res, next) => {
+                console.log('redirecting to profile');
+                res.redirect('/profile');
+            }
+        );
+
+        app.route('/profile')
+          .get(ensureAuthenticated, (req,res) => {
+            console.log('going to profile!');
+            res.render('pug/profile', {username: req.user.username});                  
+          });
+
+        app.route('/logout')
+          .get((req, res) => {
+              req.logout();
+              res.redirect('/');
+          });  
+
+        app.use((req, res, next) => {
+          res.status(404)
+            .type('text')
+            .send('Not Found');
+        });      
         app.listen(PORT, () => {
           console.log("Listening on port " + PORT);
         });
+
+        //function defenitions
+        function ensureAuthenticated(req, res, next) {
+          console.log("is Authenticated: " + req.isAuthenticated());
+          if (req.isAuthenticated()) {
+              return next();
+          } else{
+            console.log('something is wrong!');
+            res.redirect('/');
+          }
+          
+        };
        
 }});
 
 
-//function defenitions
-function ensureAuthenticated(req, res, next) {
-  if (req.isAuthenticated()) {
-      return next();
-  }
-  res.redirect('/');
-};
+
 
