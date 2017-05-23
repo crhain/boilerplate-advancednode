@@ -9,6 +9,7 @@ const PORT = process.env.PORT || 3000;
 const session = require('express-session');
 const passport = require('passport');
 const mongo = require('mongodb').MongoClient;
+const localStrategy = require('passport-local');
 
 app.set('view engine', 'pug');
 
@@ -34,8 +35,19 @@ mongo.connect(process.env.DATABASE, (err, db) => {
     if(err) {
         console.log('Database error: ' + err);
     } else {
-        console.log('Successful database connection');
-
+        console.log('Successful database connection');        
+        //setup passport stategy for local authentification
+        passport.use(new LocalStrategy(
+          function(username, password, done) {
+            db.collection('users').findOne({ username: username }, function (err, user) {
+              console.log('User '+ username +' attempted to log in.');
+              if (err) { return done(err); }
+              if (!user) { return done(null, false); }
+              if (password !== user.password) { return done(null, false); }
+              return done(null, user);
+            });
+          }
+        ));
         //serialization and app.listen
         passport.serializeUser((user, done) => {
           done(null, user._id);
