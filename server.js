@@ -10,6 +10,7 @@ const PORT = process.env.PORT || 3000;
 const session = require('express-session');
 const passport = require('passport');
 const mongo = require('mongodb').MongoClient;
+const ObjectID = require('mongodb').ObjectID
 const LocalStrategy = require('passport-local');
 
 app.set('view engine', 'pug');
@@ -18,11 +19,11 @@ app.set('view engine', 'pug');
 app.use('/public', express.static(path.join(__dirname, 'public')));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
-/*app.use(session({
+app.use(session({
   secret: process.env.SESSION_SECRET,
   resave: true,
   saveUnitialized: true
-}));*/
+}));
 app.use(passport.initialize());
 app.use(passport.session());
 
@@ -47,14 +48,16 @@ mongo.connect(process.env.DATABASE, (err, db) => {
         ));
         //serialization and app.listen
         passport.serializeUser((user, done) => {
-          console.log('serializing user: ' + user + ' with id: ' + user._id );  
+          console.log('serializing user: ');
+          console.log(user);  
+          console.log('with id: ' + user._id );  
           done(null, user._id);
         }); 
 
         passport.deserializeUser((id, done) => {
                 console.log('deserializing user id: ' + id );
                 db.collection('users').findOne(
-                    {_id: id},     
+                    {_id: new ObjectID(id)},     
                     (err, doc) => {
                         done(null, doc);
                     }
