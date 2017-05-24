@@ -2,6 +2,7 @@
 
 const express     = require('express');
 const bodyParser  = require('body-parser');
+const path        = require('path');
 //const fccTesting  = require('./freeCodeCamp/fcctesting.js');
 
 const app = express();
@@ -14,14 +15,14 @@ const LocalStrategy = require('passport-local');
 app.set('view engine', 'pug');
 
 //fccTesting(app); //For FCC testing purposes
-app.use('/public', express.static('/public'));
+app.use('/public', express.static(path.join(__dirname, 'public')));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
-app.use(session({
+/*app.use(session({
   secret: process.env.SESSION_SECRET,
   resave: true,
   saveUnitialized: true
-}));
+}));*/
 app.use(passport.initialize());
 app.use(passport.session());
 
@@ -38,18 +39,20 @@ mongo.connect(process.env.DATABASE, (err, db) => {
             db.collection('users').findOne({ username: username }, function (err, user) {
               console.log('User '+ username +' attempted to log in.');
               if (err) { return done(err); }
-              if (!user) { return done(null, false); }
-              if (password !== user.password) { return done(null, false); }
+              if (!user) { console.log('No user!'); return done(null, false); }
+              if (password !== user.password) { console.log('password does not match!'); return done(null, false); }
               return done(null, user);
             });
           }
         ));
         //serialization and app.listen
         passport.serializeUser((user, done) => {
+          console.log('serializing user: ' + user + ' with id: ' + user._id );  
           done(null, user._id);
         }); 
 
         passport.deserializeUser((id, done) => {
+                console.log('deserializing user id: ' + id );
                 db.collection('users').findOne(
                     {_id: id},     
                     (err, doc) => {
@@ -121,7 +124,7 @@ mongo.connect(process.env.DATABASE, (err, db) => {
               return next();
           } else{
             console.log('something is wrong!');
-            res.redirect('/');
+            res.redirect('/');              
           }
           
         };
