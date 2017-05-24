@@ -11,7 +11,8 @@ const session = require('express-session');
 const passport = require('passport');
 const mongo = require('mongodb').MongoClient;
 const ObjectID = require('mongodb').ObjectID
-const LocalStrategy = require('passport-local');
+const LocalStrategy = require('passport-local').Strategy;
+const bcrypt = require('bcrypt');
 
 app.set('view engine', 'pug');
 
@@ -27,8 +28,7 @@ app.use(session({
 app.use(passport.initialize());
 app.use(passport.session());
 
-
-
+//establish connection to mongo database
 mongo.connect(process.env.DATABASE, (err, db) => {
     if(err) {
         console.log('Database error: ' + err);
@@ -41,19 +41,19 @@ mongo.connect(process.env.DATABASE, (err, db) => {
               console.log('User '+ username +' attempted to log in.');
               if (err) { return done(err); }
               if (!user) { console.log('No user!'); return done(null, false); }
-              if (password !== user.password) { console.log('password does not match!'); return done(null, false); }
+              if (!bcrypt.compareSync(password, user.password)) { console.log('password does not match!'); return done(null, false); }
               return done(null, user);
             });
           }
         ));
-        //serialization and app.listen
+        //serialize credentials using id
         passport.serializeUser((user, done) => {
           console.log('serializing user: ');
           console.log(user);  
           console.log('with id: ' + user._id );  
           done(null, user._id);
         }); 
-
+        //deserialize credentials
         passport.deserializeUser((id, done) => {
                 console.log('deserializing user id: ' + id );
                 db.collection('users').findOne(
@@ -63,12 +63,13 @@ mongo.connect(process.env.DATABASE, (err, db) => {
                     }
                 );
             }); 
+        //handle basic route get request     
         app.route('/')
         .get((req, res) => {
           //res.sendFile(process.cwd() + '/views/index.html');
           res.render('pug/index.pug', {title: 'Hello', message: "Please login", showRegistration: true});
         });
-
+        //handel /register route
         app.route('/register')
           .post((req, res, next) => {
               db.collection('users').findOne({ username: req.body.username }, function (err, user) {
@@ -77,9 +78,10 @@ mongo.connect(process.env.DATABASE, (err, db) => {
                   } else if (user) {
                       res.redirect('/');
                   } else {
+                      var hash = bcrypt.hashSync(req.body.password, 8);
                       db.collection('users').insertOne(
                         {username: req.body.username,
-                        password: req.body.password},
+                        password: hash},
                         (err, doc) => {
                             if(err) {
                                 console.log('rerouting because of ERROR!');
@@ -98,29 +100,30 @@ mongo.connect(process.env.DATABASE, (err, db) => {
                 res.redirect('/profile');
             }
         );
-
+        //handle /profile route so that user must authenticate in order to view
         app.route('/profile')
           .get(ensureAuthenticated, (req,res) => {
             console.log('going to profile!');
             res.render('pug/profile', {username: req.user.username});                  
           });
-
+        //handle logout route to end session  
         app.route('/logout')
           .get((req, res) => {
               req.logout();
               res.redirect('/');
           });  
-
+        //handle unhandled route requests  
         app.use((req, res, next) => {
           res.status(404)
             .type('text')
             .send('Not Found');
         });      
+        //start server
         app.listen(PORT, () => {
           console.log("Listening on port " + PORT);
         });
 
-        //function defenitions
+        //authentification function
         function ensureAuthenticated(req, res, next) {
           console.log("is Authenticated: " + req.isAuthenticated());
           if (req.isAuthenticated()) {
