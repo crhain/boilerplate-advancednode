@@ -1,12 +1,13 @@
 'use strict';
 const express           = require('express');
-//const fccTesting  = require('./freeCodeCamp/fcctesting.js');
+const fccTesting  = require('./freeCodeCamp/fcctesting.js');
 const mongo             = require('mongodb').MongoClient;
 const app               = express();
 const PORT              = process.env.PORT || 3000;
 //require  user modules
 const routes            = require('./routes.js');
 const auth              = require('./auth.js');
+fccTesting(app); //For FCC testing purposes
 //establish connection to mongo database
 mongo.connect(process.env.DATABASE, (err, db) => {
     if(err) {

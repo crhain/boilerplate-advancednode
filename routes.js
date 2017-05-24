@@ -7,7 +7,6 @@ const bcrypt            = require('bcrypt');
 module.exports = function (app, db) {
     
     app.set('view engine', 'pug');
-    //fccTesting(app); //For FCC testing purposes
     app.use('/public', express.static(path.join(__dirname, 'public')));
     app.use(bodyParser.json());
     app.use(bodyParser.urlencoded({ extended: true }));
