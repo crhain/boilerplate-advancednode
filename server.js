@@ -1,18 +1,19 @@
 'use strict';
-
-const express     = require('express');
-const bodyParser  = require('body-parser');
-const path        = require('path');
+const express           = require('express');
+const bodyParser        = require('body-parser');
+const path              = require('path');
 //const fccTesting  = require('./freeCodeCamp/fcctesting.js');
-
-const app = express();
-const PORT = process.env.PORT || 3000;
-const session = require('express-session');
-const passport = require('passport');
-const mongo = require('mongodb').MongoClient;
-const ObjectID = require('mongodb').ObjectID
-const LocalStrategy = require('passport-local').Strategy;
-const bcrypt = require('bcrypt');
+const session           = require('express-session');
+const passport          = require('passport');
+const mongo             = require('mongodb').MongoClient;
+const ObjectID          = require('mongodb').ObjectID
+const LocalStrategy     = require('passport-local').Strategy;
+const bcrypt            = require('bcrypt');
+const PORT              = process.env.PORT || 3000;
+const app               = express();
+//require  user modules
+//const routes            = require('./routes.js');
+//const auth              = require('./auth.js');
 
 app.set('view engine', 'pug');
 
